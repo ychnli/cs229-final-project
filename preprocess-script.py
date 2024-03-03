@@ -20,6 +20,7 @@ import shutil
 
 FRAMES_PER_SEQUENCE = 6
 OVERLAP = 3
+MAX_DETECTIONS = 5
 
 #Step 1: Extract keypoints from video
 def extractKeypoints(video_fp,outputsDirectory,model):
@@ -53,7 +54,7 @@ def splitVideoToFrames(labelledvideo_fp,frames_fp):
 
 #Step 3: Assign person IDs to each character by sequence
 
-def assignIDNumbers(framesDir):
+def assignIDNumbers(framesDir, centroid_thresh=0.3, cossim_weight = 1, bb_weight = 1):
     """
     Assign person IDs to each character in each sequence
     Ordering:
@@ -62,12 +63,11 @@ def assignIDNumbers(framesDir):
     [1-indexed character number]->[index in keypoints for each frame in sequence]
 
     Assignment order:
-     - Left-to-right in first frame of sequence
      - If a person doesn't appear in the first frame of a sequence don't classify him.
      - One-indexed
     """
 
-    def modified_cossim(v1,v2):
+    def modified_cossim(v1, v2):
         """
         Helper function
         Modified cosine similarity: only nonzero elements are considered
@@ -89,7 +89,20 @@ def assignIDNumbers(framesDir):
             return arr[arr > 0].min()
         return 0
 
-    def findCameraChanges(framesDir, threshold=0.8):
+    def calc_centroid(bounding_box):
+        """
+        Helper function: calculate the centroid of the bounding box (an xyxy or xyxyn array)
+        """
+        return np.array([(bounding_box[0]+bounding_box[2])/2, 
+                         (bounding_box[1]+bounding_box[3])/2])
+    
+    def calc_size(bounding_box):
+        """
+        Helper function: calculate the size of a bounding box
+        """
+        return np.abs(bounding_box[2] - bounding_box[0]) * np.abs(bounding_box[3] - bounding_box[1])
+        
+    def findCameraChanges(framesDir, threshold=0.9):
         """
         Helper function
         Detect camera angle changes in a directory of frames. Return a list of zero-indexed frame numbers of such changes
@@ -124,7 +137,8 @@ def assignIDNumbers(framesDir):
     num_frames = len(results)
 
     angleChangeFrames = findCameraChanges(framesDir)
-
+    
+    # here the iterator s is the true (external) frame of video 
     for s in range(0,num_frames,OVERLAP):
         #print(f"Processing sequence {int(s/OVERLAP) + 1}")
         sequence = results[s:s+FRAMES_PER_SEQUENCE]
@@ -145,55 +159,91 @@ def assignIDNumbers(framesDir):
                 skip = True
                 break
         if skip: continue
-
-        #characters dictionary
-        #character with key i will contain a list which is his tensor array indexes for each frame
-        characters = dict()
-
-        #name pts left to rights from first frame in seq
-        order = sorted([r+1 for r in range(len(sequence[0].keypoints.xy))], key =sortfn)
-        for r in range(len(sequence[0].keypoints.xy)): 
-            characters[order[r]] = [r] 
-
-        sims = [] #keep track of avg similarity at each new layer
-        bestsim = 0
-
-        #match indexes at curr "layer" to those from prev layer "layer-1"
-        for layer in range(1,FRAMES_PER_SEQUENCE):
-            indexes = [r for r in range(len(sequence[layer].keypoints.xy))]
-
-            #match every character in "layer" one at a time
-            for key in characters.keys():
-                #if character doesnt exist in prev layer then skip it
-                if characters[key][-1] >= len(sequence[layer-1].keypoints.xy): continue
-
-                #vector of character[key] in prev layer
-                v1 = np.array(sequence[layer-1].keypoints.xy[characters[key][-1]].tolist()).flatten()
-                bestindex = -1; maxsim = 0
-
-                #if we've used up all of the indexes just break
-                if not indexes:
-                    characters[key].append(-1)
+        
+        # assign ID labels for the first frame 
+        num_chars_first_frame = len(sequence[0].keypoints.xy)
+        characters = np.full((MAX_DETECTIONS, FRAMES_PER_SEQUENCE), -1, dtype=int)
+        for i in range(num_chars_first_frame):
+            characters[i, 0] = i
+                
+        # match indexes at curr internal frame to those from prev internal frame
+        for internal_frame in range(1, FRAMES_PER_SEQUENCE):
+            positional_indexes = [r for r in range(len(sequence[internal_frame].keypoints.xy))]
+            
+            curr_keypoints = np.array(sequence[internal_frame].keypoints.xy) # shape: (n_people, 17, 2)
+            curr_boxes = np.array(sequence[internal_frame].boxes.xyxyn) # shape: (n_people, 4) 
+            curr_n_people = curr_keypoints.shape[0]
+            
+            # calculate sizes of boxes
+            curr_box_sizes = np.zeros((curr_n_people, 2))
+            for curr_person in range(curr_n_people):
+                curr_box_sizes[curr_person] = [curr_person, calc_size(curr_boxes[curr_person])]
+            sorted_sizes = curr_box_sizes[np.argsort(-curr_box_sizes[:, 1])]
+            #print(sorted_sizes)
+            
+            prev_keypoints = np.array(sequence[internal_frame-1].keypoints.xy)
+            prev_boxes = np.array(sequence[internal_frame-1].boxes.xyxyn) 
+            prev_n_people = prev_keypoints.shape[0]
+                        
+            # for each person in the current frame with sufficiently big bounding box 
+            # calculate their score with each person in prev frame
+            scores = []
+            for curr_person in sorted_sizes[0:3,0]:   
+                curr_person = int(curr_person)
+                for prev_person in range(prev_n_people):
+                    curr_centroid = calc_centroid(curr_boxes[curr_person])
+                    prev_centroid = calc_centroid(prev_boxes[prev_person])
+                    
+                    cossim = modified_cossim(curr_keypoints[curr_person].flatten(),
+                                            prev_keypoints[prev_person].flatten())
+                    centroid_dist = np.linalg.norm(curr_centroid - prev_centroid)
+                    
+                    # if cossim is negative, or centroid_dist is too far, don't even consider the pair
+                    if cossim < 0 or centroid_dist > centroid_thresh:
+                        continue 
+                    
+                    # calculate the similarity score between each pair of people 
+                    similarity_score = cossim_weight*cossim - bb_weight*centroid_dist
+                    scores.append([curr_person, prev_person, similarity_score])
+                
+            scores = np.array(scores) 
+            # sort the scores based on similarity 
+            if scores.shape[0] > 1:
+                sorted_scores = scores[np.argsort(-scores[:, 2])]
+            
+            else:
+                sorted_scores = scores
+            
+            # assign pairs in sorted order
+            for i in range(sorted_scores.shape[0]):
+                curr_person, prev_person = tuple(sorted_scores[i,0:2])
+                
+                # if already curr_person's prev_person is already assigned, skip
+                assignment_index = np.arange(0, characters.shape[0])[characters[:,internal_frame-1]==prev_person]
+                
+                if assignment_index.size == 0: 
+                    # print('empty assignment')
+                    continue 
+                if characters[assignment_index, internal_frame] != -1:
+                    #print(f'Previous {prev_person} already assigned to {characters[assignment_index, internal_frame]}')
+                    continue
+                if curr_person in characters[:,internal_frame]:
+                    #print(f'Current {curr_person} already assigned')
                     continue
 
-                #figure out the best index to match to character[key] in layer
-                for index in indexes:
-                    v2 = np.array(sequence[layer].keypoints.xy[index].tolist()).flatten()
-                    sim = modified_cossim(v1,v2)
-                    if sim >= maxsim:
-                        maxsim = sim
-                        bestindex = index
-
-                characters[key].append(bestindex)
-                if bestindex != -1: indexes.remove(bestindex)
-
-        characters_purged = dict()
-        for key in characters.keys():
-            if -1 not in characters[key]:
-                characters_purged[key] = characters[key]
                 
+                characters[assignment_index, internal_frame] = curr_person 
+                #print(characters)
+            
+        # convert characters to a dict        
+        characters_purged = dict()
+        for i in range(characters.shape[0]):
+            if -1 not in characters[i,:]:
+                characters_purged[i] = list(characters[i,:])
+        
         ID_assignments[int(s/OVERLAP)+1] = characters_purged #key: 1-indexed seq number, value: character assignments dict
     return ID_assignments
+    
 
 #Step 4: Write keypoints to CSV
 def write_keypoints(keypoints_fp):
