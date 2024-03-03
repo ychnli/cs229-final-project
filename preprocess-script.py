@@ -278,6 +278,7 @@ def label_person_ids(boxes_path):
         
     for seq in range(1,n_sequences+1):   
         sequence_data = data[data[:,0]==seq,:]
+        if len(sequence_data) == 0: continue # no drawing numbers on sequences w/ no people detected
         beg_frame, end_frame = int(sequence_data[0,1]), int(sequence_data[-1,1])
         for frame_num in range(beg_frame, end_frame+1):
             # find the frame image to edit
@@ -305,9 +306,11 @@ model = "yolov8l"
 
 videos_to_process = [f"{rawvideos_dir}/{file}" for file in os.listdir(rawvideos_dir)]
 
-for video_fp in  videos_to_process:
+for video_fp in videos_to_process:
     output_name = f"{video_fp[len(rawvideos_dir)+1:][:-4]}"
-    labelledvideo_fp = f"{output_dir}/{output_name}/{video_fp[len(rawvideos_dir)+1:]}"
+    #labelledvideo_fp = f"{output_dir}/{output_name}/{video_fp[len(rawvideos_dir)+1:]}"
+    #AVI FOR ETHAN, use above line if you're a plebian and don't use windows.
+    labelledvideo_fp = f"{output_dir}/{output_name}/{output_name}.avi"
     frames_fp = f"{output_dir}/{output_name}/frames"
     keypoints_fp = f"{output_dir}/{output_name}/keypoints.csv"
     boxes_fp = f"{output_dir}/{output_name}/boxes.csv"
