@@ -41,7 +41,7 @@ def vectorize(keypoints):
     output = np.array(output)
     startFrame = np.array([(int(float(row[1])) * 3 - 2)for row in output])
     endFrame = startFrame + 6
-    labels = np.full(np.shape(endFrame), -1)
+    labels = np.full(np.shape(endFrame), 0)
     output = np.insert(output, 2, startFrame, axis=1)
     output = np.insert(output, 3, endFrame, axis=1)
     output = np.insert(output, 6, labels, axis=1)
