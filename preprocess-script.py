@@ -54,7 +54,7 @@ def splitVideoToFrames(labelledvideo_fp,frames_fp):
 
 #Step 3: Assign person IDs to each character by sequence
 
-def assignIDNumbers(framesDir, centroid_thresh=0.3, cossim_weight = 1, bb_weight = 1):
+def assignIDNumbers(framesDir, centroid_thresh=0.15, cossim_weight = 1, bb_weight = 1.75):
     """
     Assign person IDs to each character in each sequence
     Ordering:
