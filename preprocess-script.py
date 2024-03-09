@@ -314,7 +314,7 @@ def delete_dir(fp):
     if os.path.exists(fp) and os.path.isdir(fp):
         shutil.rmtree(fp)
 
-
+#Step 6: Add person ID numbers to frame images for labelling
 def label_person_ids(boxes_path):
     data = np.genfromtxt(boxes_path, delimiter=',')[:,1:]
     video_name = np.genfromtxt(boxes_path, dtype=str, delimiter=',')[0,0]
