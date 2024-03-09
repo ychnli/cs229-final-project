@@ -354,7 +354,10 @@ model = "yolov8l"
     Results are in output_dir/[video name]
 """
 
-videos_to_process = [f"{rawvideos_dir}/{file}" for file in os.listdir(rawvideos_dir)]
+#Provide here a list of video fp's to process. They should be stored in rawvideos_dir (which is "raw" by default) 
+videos_to_process = []
+
+#videos_to_process = [f"{rawvideos_dir}/{file}" for file in os.listdir(rawvideos_dir)]
 
 for video_fp in videos_to_process:
     output_name = f"{video_fp[len(rawvideos_dir)+1:][:-4]}"
@@ -366,6 +369,7 @@ for video_fp in videos_to_process:
     boxes_fp = f"{output_dir}/{output_name}/boxes.csv"
 
     delete_dir(f"{output_dir}/{output_name}")
+    
     results = extractKeypoints(video_fp,output_dir,model)
     splitVideoToFrames(labelledvideo_fp,frames_fp)
     IDs = assignIDNumbers(frames_fp)
