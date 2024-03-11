@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import math
 import os
+import csv
 """
 Run on single file:
 python feature_engineering.py path/to/keypoints.csv
@@ -133,6 +134,20 @@ def main(fp):
 
     features_fp = "/".join(fp.split("/")[:-1]) + "/" + "features.csv"
     feature_data.to_csv(features_fp)
+
+    # Remove row and column index labels that are automatically added by pandas
+    # Open the existing CSV file in read mode
+    with open(features_fp, 'r', newline='') as infile:
+        # Read the contents of the existing CSV file
+        reader = csv.reader(infile)
+        data = list(reader)
+    manipulated_data = [row[1:] for row in data[1:]]
+
+    # Open the CSV file in write mode
+    with open(features_fp, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerows(manipulated_data)
+
 
 if __name__ == '__main__':
     n = len(sys.argv)
