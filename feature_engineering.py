@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
     # Check if the provided path is a directory
     if not os.path.isdir(directory_path):
-        main(sys.argv[2])
+        main(sys.argv[1])
 
     # Loop through subdirectories
     for subdir in os.listdir(directory_path):
