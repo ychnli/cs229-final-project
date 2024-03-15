@@ -5,7 +5,7 @@ import csv
 
 FRAMES_PER_SEQUENCE = 6
 OVERLAP = 3
-NUM_FEATURES = 38 #ADJUST BASED ON # FEATURES IN KEYPOINTS.CSV
+NUM_FEATURES = 102 #ADJUST BASED ON # FEATURES IN KEYPOINTS.CSV
 
 #Step 1: loading keypoints.csv
 def loadData(keypointDir):
@@ -63,7 +63,7 @@ videos_to_process = [f"{rawvideos_dir}/{file}" for file in os.listdir(rawvideos_
 
 for video_fp in videos_to_process:
     output_name = f"{video_fp[len(rawvideos_dir)+1:][:-4]}" #name of video w/out extension
-    keypointDir = f"{output_dir}/{output_name}/keypoints.csv"
+    keypointDir = f"{output_dir}/{output_name}/features.csv"
     print(keypointDir)
     outputDir = f"{output_dir}/{output_name}/unlabelledtraining.csv"
 

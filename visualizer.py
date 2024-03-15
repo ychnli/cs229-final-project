@@ -29,7 +29,7 @@ def numToPunch(num):
         return "Hook"
     if num == 3:
         return "Uppercut"
-    return "you done fucked up"
+    return "something went wrong here buddy"
 
 def label_person_ids(boxes_path):
     data = np.genfromtxt(boxes_path, delimiter=',')[:,1:] #boxes
@@ -57,7 +57,10 @@ def label_person_ids(boxes_path):
                 x1,y1 = frame_data[i,3],frame_data[i,4]
                 person_ID = int(frame_data[i,2])
                 #print(f"SEQ: {seq} PSEQ DATA: {p_seq_data} PERSON = {i} WHERE = {np.where(p_seq_data[:,5] == str(person_ID))}")
-                index = np.where(p_seq_data[:,5] == str(person_ID))[0][0] #scuffed again
+                index = np.where(p_seq_data[:,5] == str(person_ID)) #scuffed again
+                if (len(index[0])) == 0: #SAFEGUARD IF YOU REMOVED DATA POINTS AFTER USING F2L. 
+                    continue 
+                index = index[0][0]
                 punchType = numToPunch(p_seq_data[index, 6])
 
                 cv2.putText(frame_img, punchType, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 255, 255), 3)
