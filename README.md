@@ -1,4 +1,4 @@
-# StrikeSmart: CV-powered Boxing Punch Classificaton
+# 3 Punch Man: CV-powered Boxing Punch Classificaton
 Authors: Yuchen Li, Kim Diep Ngo, Saahil Sundaresan, Ethan Zhang
 
 ## Overview
