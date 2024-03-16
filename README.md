@@ -11,3 +11,6 @@ Boxing is a relatively simple sport. Fighters utilize a set of merely 6 punches:
 4. Run _f2l.py_ to generate unlabelled.csv. Label the 7th column of the spreadsheet: 0 = no punch, 1 = straight punch (jab or cross), 2 = hook, 3 = uppercut.
 
 From there, upload labeled csv files to Google Drive folder and run any model.ipynb on Colab. 
+
+## Visualizing Predictions:
+Using any model for predictions, replace column 7 in an unlabelled.csv spreadsheet with predicted punches. Run predictions.py.
