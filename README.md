@@ -14,3 +14,5 @@ From there, upload labeled csv files to Google Drive folder and run any model.ip
 
 ## Visualizing Predictions:
 Using any model for predictions, replace column 7 in an unlabelled.csv spreadsheet with predicted punches. Run predictions.py.
+
+Note: the final model is larger than 25mb and cannot be uploaded into this repo. To obtain it, please contact ethanz@stanford.edu.
