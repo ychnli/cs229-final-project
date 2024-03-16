@@ -13,6 +13,12 @@ Boxing is a relatively simple sport. Fighters utilize a set of merely 6 punches:
 From there, upload labeled csv files to Google Drive folder and run any model.ipynb on Colab. 
 
 ## Visualizing Predictions:
-Using any model for predictions, replace column 7 in an unlabelled.csv spreadsheet with predicted punches. Run predictions.py.
+Using any model for predictions, replace column 7 in an unlabelled.csv spreadsheet with predicted punches. Run visualizer.py.
 
-Note: the final model is larger than 25mb and cannot be uploaded into this repo. To obtain it, please contact ethanz@stanford.edu.
+## Models:
+BiLSTM + Softmax:
+[final model](https://drive.google.com/file/d/1U4C6DinQhtv6DN-3eMsagfOpF3EpTy3t/view?usp=sharing)
+
+BiLSTM + SVM:
+[lstm feature extraction](https://drive.google.com/file/d/1vTh2idgYYzbAJSZoQwx-QqfdkjpcZttd/view?usp=sharing), 
+[svm model](https://drive.google.com/file/d/1uJktywVXUeWumO0I60KBRexnmyS9Ce92/view?usp=sharing)
